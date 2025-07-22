@@ -42,6 +42,155 @@
         "title": "Chave de API (token) Envia.com"
       },
       "hide": true
+    },
+    "posting_deadline": {
+      "schema": {
+        "title": "Prazo de postagem",
+        "type": "object",
+        "required": [
+          "days"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "type": "integer",
+            "default": 3,
+            "minimum": 0,
+            "maximum": 999999,
+            "title": "Número de dias",
+            "description": "Dias de prazo para postar os produtos após a compra"
+          },
+          "working_days": {
+            "type": "boolean",
+            "default": true,
+            "title": "Dias úteis"
+          },
+          "after_approval": {
+            "type": "boolean",
+            "default": true,
+            "title": "Após aprovação do pagamento"
+          }
+        }
+      },
+      "hide": false
+    },
+    "shipping_rules": {
+      "schema": {
+        "title": "Regras de envio",
+        "description": "Aplicar descontos/adicionais condicionados ou desabilitar regiões",
+        "type": "array",
+        "maxItems": 300,
+        "items": {
+          "title": "Regra de envio",
+          "type": "object",
+          "minProperties": 1,
+          "properties": {
+            "service": {
+              "type": "string",
+              "default": "PAC",
+              "title": "Código do serviço de entrega"
+            },
+            "zip_range": {
+              "title": "Faixa de CEP",
+              "type": "object",
+              "required": [
+                "min",
+                "max"
+              ],
+              "properties": {
+                "min": {
+                  "type": "integer",
+                  "minimum": 10000,
+                  "maximum": 999999999,
+                  "title": "CEP inicial"
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": 10000,
+                  "maximum": 999999999,
+                  "title": "CEP final"
+                }
+              }
+            },
+            "min_amount": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 999999999,
+              "title": "Valor mínimo da compra"
+            },
+            "free_shipping": {
+              "type": "boolean",
+              "default": false,
+              "title": "Frete grátis"
+            },
+            "discount": {
+              "title": "Desconto",
+              "type": "object",
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "percentage": {
+                  "type": "boolean",
+                  "default": false,
+                  "title": "Desconto percentual"
+                },
+                "value": {
+                  "type": "number",
+                  "minimum": -99999999,
+                  "maximum": 99999999,
+                  "title": "Valor do desconto",
+                  "description": "Valor percentual/fixo do desconto ou acréscimo (negativo)"
+                }
+              }
+            }
+          }
+        }
+      },
+      "hide": false
+    },
+    "disable_services": {
+      "schema": {
+        "title": "Desabilitar serviços",
+        "description": "Desabilitar tipos de serviço por CEP",
+        "type": "array",
+        "maxItems": 300,
+        "items": {
+          "title": "Serviço a desabilitar",
+          "type": "object",
+          "minProperties": 1,
+          "properties": {
+            "service_name": {
+              "type": "string",
+              "default": "PAC",
+              "title": "Código do serviço de entrega"
+            },
+            "zip_range": {
+              "title": "Faixa de CEP",
+              "type": "object",
+              "required": [
+                "min",
+                "max"
+              ],
+              "properties": {
+                "min": {
+                  "type": "integer",
+                  "minimum": 10000,
+                  "maximum": 999999999,
+                  "title": "CEP inicial"
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": 10000,
+                  "maximum": 999999999,
+                  "title": "CEP final"
+                }
+              }
+            }
+          }
+        }
+      },
+      "hide": false
     }
   },
   "auth_callback_uri": "https://us-central1-ecom-enviacom.cloudfunctions.net/app/ecom/auth-callback",
