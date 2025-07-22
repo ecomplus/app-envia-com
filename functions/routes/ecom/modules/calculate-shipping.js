@@ -1,4 +1,4 @@
-exports.post = ({ appSdk }, req, res) => {
+exports.post = async ({ appSdk }, req, res) => {
   /**
    * Treat `params` and (optionally) `application` from request body to properly mount the `response`.
    * JSON Schema reference for Calculate Shipping module objects:
@@ -30,40 +30,142 @@ exports.post = ({ appSdk }, req, res) => {
     return
   }
 
-  /* DO THE STUFF HERE TO FILL RESPONSE OBJECT WITH SHIPPING SERVICES */
-
-  /**
-   * Sample snippets:
-
-  if (params.items) {
-    let totalWeight = 0
-    params.items.forEach(item => {
-      // treat items to ship
-      totalWeight += item.quantity * item.weight.value
-    })
+  // Check if required credentials are available
+  if (!appData.api_key) {
+    console.error('Missing envia.com API key')
+    res.send(response)
+    return
   }
 
-  // add new shipping service option
-  response.shipping_services.push({
-    label: appData.label || 'My shipping method',
-    carrier: 'My carrier',
-    shipping_line: {
-      from: appData.from,
-      to: params.to,
-      package: {
-        weight: {
-          value: totalWeight
-        }
-      },
-      price: 10,
-      delivery_time: {
-        days: 3,
-        working_days: true
-      }
-    }
-  })
+  // Validate required fields for BR sellers
+  if (!params.from || !params.from.zip || !params.to.zip) {
+    console.error('Missing zip codes for shipping calculation')
+    res.send(response)
+    return
+  }
 
-  */
+  try {
+    // Calculate total weight and dimensions
+    let totalWeight = 0
+    let totalValue = params.subtotal || 0
+    const items = []
+
+    if (params.items) {
+      params.items.forEach(item => {
+        const weight = item.weight ? item.weight.value || 0 : 0
+        totalWeight += item.quantity * weight
+        
+        items.push({
+          name: item.name || 'Item',
+          weight: weight,
+          value: item.price || 0,
+          quantity: item.quantity || 1
+        })
+      })
+    }
+
+    // Default dimensions if not specified
+    const packageDimensions = {
+      length: appData.default_length || 20,
+      width: appData.default_width || 20,
+      height: appData.default_height || 5
+    }
+
+    // Prepare envia.com quote request
+    const enviaRequest = {
+      origin: {
+        postalCode: params.from.zip.replace(/\D/g, ''),
+        country: 'BR'
+      },
+      destination: {
+        postalCode: params.to.zip.replace(/\D/g, ''),
+        country: 'BR'
+      },
+      packages: [{
+        weight: totalWeight || 0.1, // Minimum weight 0.1kg
+        length: packageDimensions.length,
+        width: packageDimensions.width,
+        height: packageDimensions.height,
+        declaredValue: totalValue
+      }],
+      services: appData.enabled_services || ['standard'],
+      currency: 'BRL'
+    }
+
+    // Call envia.com quote API
+    const axios = require('axios')
+    const enviaBaseUrl = appData.sandbox ? 'https://ship-test.envia.com' : 'https://ship.envia.com'
+    
+    const enviaResponse = await axios.post(`${enviaBaseUrl}/v1/ship/rates`, enviaRequest, {
+      headers: {
+        'Authorization': `Bearer ${appData.api_key}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    })
+
+    // Transform envia.com response to E-com Plus format
+    if (enviaResponse.data && enviaResponse.data.rates) {
+      enviaResponse.data.rates.forEach(rate => {
+        if (rate.totalPrice && rate.deliveryDays) {
+          response.shipping_services.push({
+            label: rate.serviceName || rate.carrierName || 'Envia.com',
+            carrier: rate.carrierName || 'Envia.com',
+            service_name: rate.serviceName,
+            service_code: rate.serviceCode,
+            shipping_line: {
+              from: params.from,
+              to: params.to,
+              package: {
+                weight: {
+                  value: totalWeight,
+                  unit: 'kg'
+                },
+                dimensions: packageDimensions
+              },
+              price: parseFloat(rate.totalPrice),
+              delivery_time: {
+                days: parseInt(rate.deliveryDays),
+                working_days: rate.workingDays !== false
+              }
+            }
+          })
+        }
+      })
+    }
+
+    // Add delivery instructions if configured
+    if (appData.delivery_instructions) {
+      response.shipping_services.forEach(service => {
+        service.delivery_instructions = appData.delivery_instructions
+      })
+    }
+
+  } catch (error) {
+    console.error('Error calling envia.com API:', error.message)
+    
+    // Add fallback shipping option if API fails
+    if (appData.fallback_enabled) {
+      response.shipping_services.push({
+        label: appData.fallback_label || 'Entrega padrão',
+        carrier: 'Envia.com',
+        shipping_line: {
+          from: params.from,
+          to: params.to,
+          package: {
+            weight: {
+              value: totalWeight || 0.1
+            }
+          },
+          price: appData.fallback_price || 15,
+          delivery_time: {
+            days: appData.fallback_days || 7,
+            working_days: true
+          }
+        }
+      })
+    }
+  }
 
   res.send(response)
 }

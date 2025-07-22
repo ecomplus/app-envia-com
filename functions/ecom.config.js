@@ -7,8 +7,8 @@
 
 const app = {
   app_id: 125535,
-  title: 'My Awesome E-Com Plus App',
-  slug: 'my-awesome-app',
+  title: 'Envia.com',
+  slug: 'enviacom',
   type: 'external',
   state: 'active',
   authentication: true,
@@ -82,7 +82,7 @@ const app = {
       // 'DELETE',        // Delete customers
     ],
     orders: [
-      // 'GET',           // List/read orders with public and private fields
+      'GET',           // List/read orders with public and private fields
       // 'POST',          // Create orders
       // 'PATCH',         // Edit orders
       // 'PUT',           // Overwrite orders
@@ -101,8 +101,12 @@ const app = {
      */
     'orders/fulfillments': [
       // 'GET',           // List/read order fulfillment and tracking events
-      // 'POST',          // Create fulfillment event with new status
+      'POST',             // Create fulfillment event with new status
       // 'DELETE',        // Delete fulfillment event
+    ],
+    'orders/shipping_lines': [
+      'GET',              // List/read order shipping lines
+      'PATCH',            // Edit order shipping line nested object
     ],
     'orders/payments_history': [
       // 'GET',           // List/read order payments history events
@@ -138,37 +142,14 @@ const app = {
   },
 
   admin_settings: {
-    /**
-     * JSON schema based fields to be configured by merchant and saved to app `data` / `hidden_data`, such as:
-
-     webhook_uri: {
+     api_key: {
        schema: {
          type: 'string',
          maxLength: 255,
-         format: 'uri',
-         title: 'Notifications URI',
-         description: 'Unique notifications URI available on your Custom App dashboard'
+         title: 'Chave de API (token) Envia.com'
        },
        hide: true
      },
-     token: {
-       schema: {
-         type: 'string',
-         maxLength: 50,
-         title: 'App token'
-       },
-       hide: true
-     },
-     opt_in: {
-       schema: {
-         type: 'boolean',
-         default: false,
-         title: 'Some config option'
-       },
-       hide: false
-     },
-
-     */
   }
 }
 
