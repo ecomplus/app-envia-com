@@ -1,10 +1,12 @@
-# E-Com Plus Application Starter
+# App Envia.com
 
 [![Deploy](https://github.com/ecomplus/application-starter/workflows/Deploy/badge.svg)](https://github.com/ecomplus/application-starter/actions?workflow=Deploy)  [![License MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-:dog: Boilerplate for E-Com Plus apps with [Firebase](https://firebase.google.com/) Cloud Functions and GitHub Actions.
-
 [CHANGELOG](https://github.com/ecomplus/application-starter/blob/master/CHANGELOG.md)
+
+# E-Com Plus Application Starter
+
+:dog: Boilerplate for E-Com Plus apps with [Firebase](https://firebase.google.com/) Cloud Functions and GitHub Actions.
 
 ## Getting started
 
