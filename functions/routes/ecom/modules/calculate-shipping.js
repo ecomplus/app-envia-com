@@ -12,13 +12,20 @@ exports.post = async ({ appSdk }, req, res) => {
    */
 
   const { params, application } = req.body
-  const { storeId } = req
+  // const { storeId } = req
   // setup basic required response object
   const response = {
     shipping_services: []
   }
   // merge all app options configured by merchant
   const appData = Object.assign({}, application.data, application.hidden_data)
+
+  // Helper function to check ZIP code ranges
+  const checkZipCode = (zipCode, zipRange) => {
+    if (!zipRange) return true
+    const zip = parseInt(zipCode.replace(/\D/g, ''))
+    return zip >= zipRange.min && zip <= zipRange.max
+  }
 
   if (appData.free_shipping_from_value >= 0) {
     response.free_shipping_from_value = appData.free_shipping_from_value
@@ -44,20 +51,19 @@ exports.post = async ({ appSdk }, req, res) => {
     return
   }
 
+  let totalWeight = 0
   try {
     // Calculate total weight and dimensions
-    let totalWeight = 0
-    let totalValue = params.subtotal || 0
+    const totalValue = params.subtotal || 0
     const items = []
 
     if (params.items) {
       params.items.forEach(item => {
         const weight = item.weight ? item.weight.value || 0 : 0
         totalWeight += item.quantity * weight
-        
         items.push({
           name: item.name || 'Item',
-          weight: weight,
+          weight,
           value: item.price || 0,
           quantity: item.quantity || 1
         })
@@ -95,10 +101,10 @@ exports.post = async ({ appSdk }, req, res) => {
     // Call envia.com quote API
     const axios = require('axios')
     const enviaBaseUrl = appData.sandbox ? 'https://ship-test.envia.com' : 'https://ship.envia.com'
-    
+
     const enviaResponse = await axios.post(`${enviaBaseUrl}/v1/ship/rates`, enviaRequest, {
       headers: {
-        'Authorization': `Bearer ${appData.api_key}`,
+        Authorization: `Bearer ${appData.api_key}`,
         'Content-Type': 'application/json'
       },
       timeout: 10000
@@ -108,10 +114,32 @@ exports.post = async ({ appSdk }, req, res) => {
     if (enviaResponse.data && enviaResponse.data.rates) {
       enviaResponse.data.rates.forEach(rate => {
         if (rate.totalPrice && rate.deliveryDays) {
-          response.shipping_services.push({
+          const serviceName = rate.serviceName || rate.serviceCode
+          const destinationZip = params.to.zip
+
+          // Check if service should be disabled
+          if (appData.disable_services && Array.isArray(appData.disable_services)) {
+            const shouldDisable = appData.disable_services.some(rule => {
+              return rule.service_name === serviceName && checkZipCode(destinationZip, rule.zip_range)
+            })
+            if (shouldDisable) return
+          }
+
+          // Calculate posting deadline
+          let postingDeadline
+          if (appData.posting_deadline) {
+            postingDeadline = {
+              days: appData.posting_deadline.days || 3,
+              working_days: appData.posting_deadline.working_days !== false,
+              after_approval: appData.posting_deadline.after_approval !== false
+            }
+          }
+
+          // Base shipping service object
+          const shippingService = {
             label: rate.serviceName || rate.carrierName || 'Envia.com',
             carrier: rate.carrierName || 'Envia.com',
-            service_name: rate.serviceName,
+            service_name: serviceName,
             service_code: rate.serviceCode,
             shipping_line: {
               from: params.from,
@@ -129,7 +157,46 @@ exports.post = async ({ appSdk }, req, res) => {
                 working_days: rate.workingDays !== false
               }
             }
-          })
+          }
+
+          // Add posting deadline if configured
+          if (postingDeadline) {
+            shippingService.shipping_line.posting_deadline = postingDeadline
+          }
+
+          // Apply shipping rules
+          if (appData.shipping_rules && Array.isArray(appData.shipping_rules)) {
+            for (const rule of appData.shipping_rules) {
+              // Check if rule applies
+              const ruleApplies = (!rule.service || rule.service === serviceName) &&
+                checkZipCode(destinationZip, rule.zip_range) &&
+                (!rule.min_amount || totalValue >= rule.min_amount)
+
+              if (ruleApplies) {
+                // Apply free shipping
+                if (rule.free_shipping) {
+                  shippingService.shipping_line.price = 0
+                  shippingService.shipping_line.free_shipping = true
+                  break
+                }
+
+                // Apply discount
+                if (rule.discount && rule.discount.value) {
+                  let discount = rule.discount.value
+                  if (rule.discount.percentage) {
+                    discount = shippingService.shipping_line.price * (discount / 100)
+                  }
+                  shippingService.shipping_line.price = Math.max(0, shippingService.shipping_line.price - discount)
+                  if (shippingService.shipping_line.price === 0) {
+                    shippingService.shipping_line.free_shipping = true
+                  }
+                  break
+                }
+              }
+            }
+          }
+
+          response.shipping_services.push(shippingService)
         }
       })
     }
@@ -140,10 +207,9 @@ exports.post = async ({ appSdk }, req, res) => {
         service.delivery_instructions = appData.delivery_instructions
       })
     }
-
   } catch (error) {
     console.error('Error calling envia.com API:', error.message)
-    
+
     // Add fallback shipping option if API fails
     if (appData.fallback_enabled) {
       response.shipping_services.push({
