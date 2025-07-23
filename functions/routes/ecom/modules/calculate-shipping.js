@@ -98,21 +98,15 @@ exports.post = async ({ appSdk }, req, res) => {
       currency: 'BRL'
     }
 
-    // Call envia.com quote API
-    const axios = require('axios')
-    const enviaBaseUrl = appData.sandbox ? 'https://ship-test.envia.com' : 'https://ship.envia.com'
+    // Call envia.com quote API using wrapper
+    const EnviaAPI = require('./../../lib/envia-api')
+    const enviaApi = new EnviaAPI(appData.api_key, appData.sandbox)
 
-    const enviaResponse = await axios.post(`${enviaBaseUrl}/v1/ship/rates`, enviaRequest, {
-      headers: {
-        Authorization: `Bearer ${appData.api_key}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 10000
-    })
+    const enviaResponse = await enviaApi.post('/v1/ship/rates', enviaRequest)
 
     // Transform envia.com response to E-com Plus format
-    if (enviaResponse.data && enviaResponse.data.rates) {
-      enviaResponse.data.rates.forEach(rate => {
+    if (enviaResponse && enviaResponse.rates) {
+      enviaResponse.rates.forEach(rate => {
         if (rate.totalPrice && rate.deliveryDays) {
           const serviceName = rate.serviceName || rate.serviceCode
           const destinationZip = params.to.zip

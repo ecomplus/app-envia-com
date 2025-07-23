@@ -92,16 +92,34 @@ class EnviaAPI {
         items
       }
 
-      // Create shipment
-      const response = await axios.post(`${this.baseUrl}/v1/ship/shipments`, shipmentRequest, {
-        headers: this.headers,
-        timeout: 30000
-      })
+      // Create shipment using generic POST method
+      const response = await this.post('/v1/ship/shipments', shipmentRequest, 30000)
 
-      console.log(`Envia.com shipment created for order ${order._id}:`, response.data.id)
-      return response.data
+      console.log(`Envia.com shipment created for order ${order._id}:`, response.id)
+      return response
     } catch (error) {
       console.error('Error creating Envia.com shipment:', error.response?.data || error.message)
+      throw error
+    }
+  }
+
+  /**
+   * Generic POST method for Envia.com API calls
+   * @param {string} endpoint - API endpoint (e.g., '/v1/ship/rates', '/v1/ship/shipments')
+   * @param {Object} data - Request payload data
+   * @param {number} timeout - Request timeout in milliseconds (default: 10000)
+   * @returns {Promise<Object>} API response data
+   */
+  async post (endpoint, data, timeout = 10000) {
+    try {
+      const response = await axios.post(`${this.baseUrl}${endpoint}`, data, {
+        headers: this.headers,
+        timeout
+      })
+
+      return response.data
+    } catch (error) {
+      console.error(`Error calling Envia.com API ${endpoint}:`, error.response?.data || error.message)
       throw error
     }
   }
