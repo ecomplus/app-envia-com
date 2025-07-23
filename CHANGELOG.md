@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+### [1.0.2](https://github.com/ecomplus/application-starter/compare/v1.0.1...v1.0.2) (2025-07-23)
+
+
+### Bug Fixes
+
+* fetch origin/destination addr details from envia.com geocodes api ([95c45a9](https://github.com/ecomplus/application-starter/commit/95c45a94b6dcfef6b14308060201490c61f1098c))
+* fix import paths ([beb7125](https://github.com/ecomplus/application-starter/commit/beb71254e1b4e4569989ccb62bb14ad37398a367))
+* fixed Envia.com API host ([d4b8505](https://github.com/ecomplus/application-starter/commit/d4b8505aaaa3cfdd6e06f4ba66ceb55ad14355f5))
+* handling envia.com carriers on quote ([d06261d](https://github.com/ecomplus/application-starter/commit/d06261dd5c9a17c4adcaffdb1a7982603700aa64))
+* handling envia.com carriers on quote ([5b7d754](https://github.com/ecomplus/application-starter/commit/5b7d754de340a7daedbb2686a54c8714a0db7972))
+* set `shipment.type` on quote request to envia.com api ([fb4fa7d](https://github.com/ecomplus/application-starter/commit/fb4fa7df121e8d8241354eac21bac05389206bd5))
+
 ### [1.0.1](https://github.com/ecomplus/application-starter/compare/v1.0.0...v1.0.1) (2025-07-23)
 
 ## 1.0.0 (2025-07-23)
