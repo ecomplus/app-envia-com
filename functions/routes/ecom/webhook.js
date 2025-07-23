@@ -30,7 +30,54 @@ exports.post = ({ appSdk }, req, res) => {
         throw err
       }
 
-      /* DO YOUR CUSTOM STUFF HERE */
+      /* Handle shipping tag creation based on order status */
+      if (trigger.resource === 'orders' && trigger.body) {
+        const order = trigger.body
+
+        // Check if auto-tagging is enabled
+        if (!appData.disable_auto_tag && appData.api_key) {
+          const parseStatus = (status) => {
+            switch (status && status.current) {
+              case 'paid': return 'Pago'
+              case 'in_production': return 'Em produção'
+              case 'in_separation': return 'Em separação'
+              case 'ready_for_shipping': return 'Pronto para envio'
+              case 'invoice_issued': return 'NF emitida'
+              case 'shipped': return 'Enviado'
+              default: return status && status.current
+            }
+          }
+
+          const targetStatus = appData.send_tag_status || 'Pronto para envio'
+          const currentFinancialStatus = parseStatus(order.financial_status)
+          const currentFulfillmentStatus = parseStatus(order.fulfillment_status)
+
+          // Check if either financial_status or fulfillment_status matches target status
+          if (currentFinancialStatus === targetStatus || currentFulfillmentStatus === targetStatus) {
+            console.log(`Creating Envia.com shipping tag for order ${order._id} with status ${targetStatus}`)
+
+            // Create shipping label asynchronously
+            const EnviaAPI = require('./../../lib/envia-api')
+            const enviaApi = new EnviaAPI(appData.api_key, appData.sandbox)
+
+            enviaApi.createShippingLabel(order)
+              .then(shipment => {
+                if (shipment && shipment.id) {
+                  console.log(`Envia.com shipment ${shipment.id} created for order ${order._id}`)
+                  // Optionally update order with tracking info
+                  if (shipment.trackingNumber) {
+                    // Update order shipping line with tracking number
+                    // This could be implemented later if needed
+                    console.log(`Tracking number: ${shipment.trackingNumber}`)
+                  }
+                }
+              })
+              .catch(error => {
+                console.error(`Failed to create Envia.com shipment for order ${order._id}:`, error.message)
+              })
+          }
+        }
+      }
 
       // all done
       res.send(ECHO_SUCCESS)
