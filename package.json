@@ -1,15 +1,15 @@
 {
   "name": "@ecomplus/application-starter",
   "private": true,
-  "version": "1.0.0-starter.26",
+  "version": "1.0.0",
   "description": "Boilerplate for E-Com Plus apps with Firebase Cloud Functions",
   "main": "functions/index.js",
   "scripts": {
     "prepare": "npx husky install",
     "serve": "sh ./serve.sh",
     "deploy": "NODE_ENV=production node ./scripts/firebase-deploy.js",
-    "release": "standard-version",
-    "release:starter": "standard-version --prerelease starter",
+    "release": "commit-and-tag-version",
+    "release:starter": "commit-and-tag-version --prerelease starter",
     "publish:market": "node ./scripts/market-publication.js"
   },
   "repository": {

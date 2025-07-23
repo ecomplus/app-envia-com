@@ -1,6 +1,21 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
+
+## 1.0.0 (2025-07-23)
+
+
+### Features
+
+* add shipping rules and configuration options for envia.com ([55e5334](https://github.com/ecomplus/application-starter/commit/55e53346218b63ae6e1030e2d773360d261f046c))
+* implement automatic shipping tag creation for Envia.com ([63ae932](https://github.com/ecomplus/application-starter/commit/63ae932031cc8f3a6cb799f552752c05eb97687b))
+* implement envia.com shipping calculation for BR sellers ([d838491](https://github.com/ecomplus/application-starter/commit/d83849116bb1f1160f37fb4e8bdae3ba72bf527c))
+
+
+### Bug Fixes
+
+* enabling calculate shipping module on app config ([92fc1c6](https://github.com/ecomplus/application-starter/commit/92fc1c695f2add6c472056de1927f0495a1f40b1))
+* properly handling calculate shipping ([053fb06](https://github.com/ecomplus/application-starter/commit/053fb0654033a4cec5774dc01ebc6cb0dc0123c6))
 
 ## [1.0.0-starter.26](https://github.com/ecomplus/application-starter/compare/v1.0.0-starter.25...v1.0.0-starter.26) (2022-02-24)
 
