@@ -249,7 +249,7 @@ exports.post = async ({ appSdk, admin }, req, res) => {
   }
 
   const enviaCarriers = []
-  if (!appData.carriers.length) {
+  if (!appData.carriers?.length) {
     enviaCarriers.push('correios')
   } else {
     appData.carriers.forEach((carrierName) => {
