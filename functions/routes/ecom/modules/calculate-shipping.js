@@ -261,15 +261,17 @@ exports.post = async ({ appSdk, admin }, req, res) => {
   }
 
   await Promise.all(enviaCarriers.map(async (carrier) => {
+    const enviaFinalQuote = {
+      ...enviaQuote,
+      shipment: {
+        ...enviaQuote.shipment,
+        carrier
+      }
+    }
+
     try {
       const enviaApi = new EnviaAPI(appData.api_key, storeId, appData.sandbox)
-      const enviaResponse = await enviaApi.fetch('/ship/rate/', {
-        ...enviaQuote,
-        shipment: {
-          ...enviaQuote.shipment,
-          carrier
-        }
-      })
+      const enviaResponse = await enviaApi.fetch('/ship/rate/', enviaFinalQuote)
 
       if (enviaResponse?.data) {
         enviaResponse.data.forEach(rate => {
@@ -393,7 +395,7 @@ exports.post = async ({ appSdk, admin }, req, res) => {
       } else {
         logger.warn(`#${storeId} unexpected Envia.com response`, {
           destinationZip,
-          enviaQuote,
+          enviaFinalQuote,
           enviaResponse
         })
       }
