@@ -1,8 +1,9 @@
+const axios = require('axios')
 const { logger } = require('firebase-functions')
 const EnviaAPI = require('../../../lib/envia-api')
 const { getBestPackage } = require('../../../lib/util')
 
-exports.post = async ({ appSdk }, req, res) => {
+exports.post = async ({ appSdk, admin }, req, res) => {
   /**
    * Treat `params` and (optionally) `application` from request body to properly mount the `response`.
    * JSON Schema reference for Calculate Shipping module objects:
@@ -177,6 +178,33 @@ exports.post = async ({ appSdk }, req, res) => {
     }
   }
 
+  const fieldsToGeocodes = ['origin', 'destination']
+  for (let i = 0; i < fieldsToGeocodes.length; i++) {
+    const quoteAddr = enviaQuote[fieldsToGeocodes[i]]
+    const { postalCode } = quoteAddr
+    let geocodes
+    try {
+      const docRef = admin.firestore().doc(`geocodes/${postalCode}`)
+      const docSnap = await docRef.get()
+      if (docSnap.exists) {
+        geocodes = docSnap.data().geocodes
+      } else {
+        const { data } = await axios.get(`https://geocodes.envia.com/zipcode/BR/${postalCode}`)
+        geocodes = data[0]
+        await docRef.set({
+          geocodes,
+          at: Date.now()
+        })
+      }
+    } catch (err) {
+      logger.warn(err)
+    }
+    if (geocodes) {
+      quoteAddr.state = geocodes.state?.code?.['2digit']
+      quoteAddr.city = geocodes.locality
+    }
+  }
+
   try {
     const enviaApi = new EnviaAPI(appData.api_key, storeId, appData.sandbox)
     const enviaResponse = await enviaApi.fetch('/ship/rate/', enviaQuote)
@@ -303,6 +331,7 @@ exports.post = async ({ appSdk }, req, res) => {
     } else {
       logger.warn(`#${storeId} unexpected Envia.com response`, {
         destinationZip,
+        enviaQuote,
         enviaResponse
       })
     }
