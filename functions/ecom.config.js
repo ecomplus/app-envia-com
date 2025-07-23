@@ -142,6 +142,16 @@ const app = {
   },
 
   admin_settings: {
+    zip: {
+      schema: {
+        type: 'string',
+        maxLength: 9,
+        pattern: '^[0-9]{5}-?[0-9]{3}$',
+        title: 'CEP de origem',
+        description: 'Código postal do remetente para cálculo do frete'
+      },
+      hide: true
+    },
     api_key: {
       schema: {
         type: 'string',
@@ -248,6 +258,35 @@ const app = {
                   description: 'Valor percentual/fixo do desconto ou acréscimo (negativo)'
                 }
               }
+            }
+          }
+        }
+      },
+      hide: false
+    },
+    service_labels: {
+      schema: {
+        title: 'Rótulos para serviços de entrega',
+        description: 'Configuração opcional de serviços via Envia.com',
+        type: 'array',
+        items: {
+          title: 'Opção de serviço de entrega',
+          type: 'object',
+          required: [
+            'service_name',
+            'label'
+          ],
+          properties: {
+            service_name: {
+              type: 'string',
+              default: 'PAC',
+              title: 'Serviço da transportadora'
+            },
+            label: {
+              type: 'string',
+              maxLength: 50,
+              title: 'Rótulo',
+              description: 'Nome do serviço exibido aos clientes'
             }
           }
         }

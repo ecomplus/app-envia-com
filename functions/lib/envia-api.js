@@ -1,4 +1,5 @@
 const axios = require('axios')
+const { debugAxiosError } = require('./util')
 
 /**
  * Envia.com API helper for shipping label creation
@@ -93,7 +94,7 @@ class EnviaAPI {
       }
 
       // Create shipment using generic POST method
-      const response = await this.post('/v1/ship/shipments', shipmentRequest, 30000)
+      const response = await this.fetch('/v1/ship/shipments', shipmentRequest, 30000)
 
       console.log(`Envia.com shipment created for order ${order._id}:`, response.id)
       return response
@@ -104,22 +105,25 @@ class EnviaAPI {
   }
 
   /**
-   * Generic POST method for Envia.com API calls
+   * Generic request method for Envia.com API calls
    * @param {string} endpoint - API endpoint (e.g., '/v1/ship/rates', '/v1/ship/shipments')
    * @param {Object} data - Request payload data
    * @param {number} timeout - Request timeout in milliseconds (default: 10000)
    * @returns {Promise<Object>} API response data
    */
-  async post (endpoint, data, timeout = 10000) {
+  async fetch (endpoint, data, timeout = 10000) {
     try {
-      const response = await axios.post(`${this.baseUrl}${endpoint}`, data, {
+      const response = await axios({
+        baseURL: this.baseUrl,
+        url: endpoint,
+        method: data ? 'post' : 'get',
         headers: this.headers,
+        data,
         timeout
       })
-
       return response.data
     } catch (error) {
-      console.error(`Error calling Envia.com API ${endpoint}:`, error.response?.data || error.message)
+      debugAxiosError(error)
       throw error
     }
   }
@@ -138,25 +142,7 @@ class EnviaAPI {
 
       return response.data
     } catch (error) {
-      console.error('Error getting tracking info:', error.response?.data || error.message)
-      throw error
-    }
-  }
-
-  /**
-   * Cancel a shipment
-   * @param {string} shipmentId - Envia.com shipment ID
-   * @returns {Promise<Object>} Cancellation response
-   */
-  async cancelShipment (shipmentId) {
-    try {
-      const response = await axios.delete(`${this.baseUrl}/v1/ship/shipments/${shipmentId}`, {
-        headers: this.headers,
-        timeout: 10000
-      })
-      return response.data
-    } catch (error) {
-      console.error('Error canceling shipment:', error.response?.data || error.message)
+      debugAxiosError(error)
       throw error
     }
   }
