@@ -5,8 +5,9 @@ const { debugAxiosError } = require('./util')
  * Envia.com API helper for shipping label creation
  */
 class EnviaAPI {
-  constructor (apiKey, sandbox = false) {
+  constructor (apiKey, storeId, sandbox = false) {
     this.apiKey = apiKey
+    this.storeId = storeId
     this.baseUrl = sandbox ? 'https://ship-test.envia.com' : 'https://ship.envia.com'
     this.headers = {
       Authorization: `Bearer ${apiKey}`,
@@ -123,7 +124,7 @@ class EnviaAPI {
       })
       return response.data
     } catch (error) {
-      debugAxiosError(error)
+      debugAxiosError(error, this.storeId)
       throw error
     }
   }

@@ -16,7 +16,7 @@ exports.post = async ({ appSdk }, req, res) => {
    */
 
   const { params, application } = req.body
-  // const { storeId } = req
+  const { storeId } = req
   // setup basic required response object
   const response = {
     shipping_services: []
@@ -175,7 +175,7 @@ exports.post = async ({ appSdk }, req, res) => {
   }
 
   try {
-    const enviaApi = new EnviaAPI(appData.api_key, appData.sandbox)
+    const enviaApi = new EnviaAPI(appData.api_key, storeId, appData.sandbox)
     const enviaResponse = await enviaApi.fetch('/ship/rate', enviaQuote)
 
     if (enviaResponse?.data) {
@@ -297,6 +297,11 @@ exports.post = async ({ appSdk }, req, res) => {
           shipping_line: shippingLine
         })
       })
+    } else {
+      logger.warn(`#${storeId} unexpected Envia.com response`, {
+        destinationZip,
+        enviaResponse
+      })
     }
 
     if (appData.delivery_instructions) {
@@ -305,7 +310,7 @@ exports.post = async ({ appSdk }, req, res) => {
       })
     }
   } catch (error) {
-    logger.error('Error calling Envia.com API:', error.message)
+    logger.error(`#${storeId} error calling Envia.com API: ${error.message}`)
   }
 
   res.send(response)

@@ -28,8 +28,12 @@ const getBestPackage = (pkgCm3Vol) => {
   return smallestPkg
 }
 
-const debugAxiosError = error => {
-  const err = new Error(error.message)
+const debugAxiosError = (error, storeId) => {
+  let msg = error.message
+  if (storeId) {
+    msg = `${msg} [#${storeId}]`
+  }
+  const err = new Error(msg)
   if (error.response) {
     err.status = error.response.status
     err.response = error.response.data
