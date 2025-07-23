@@ -1,5 +1,5 @@
 const { logger } = require('firebase-functions')
-const EnviaAPI = require('./../../lib/envia-api')
+const EnviaAPI = require('../../../lib/envia-api')
 const { getBestPackage } = require('../../../lib/util')
 
 exports.post = async ({ appSdk }, req, res) => {
@@ -73,7 +73,7 @@ exports.post = async ({ appSdk }, req, res) => {
     })
   }
 
-  if (params.items?.length) {
+  if (!params.items?.length) {
     return res.status(400).send({
       error: 'CALCULATE_EMPTY_CART',
       message: 'Cannot calculate shipping without cart items'
