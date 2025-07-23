@@ -169,6 +169,9 @@ exports.post = async ({ appSdk }, req, res) => {
       country: 'BR'
     },
     packages: [enviaPackage],
+    shipment: {
+      type: 1
+    },
     settings: {
       currency: 'BRL'
     }
