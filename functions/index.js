@@ -145,5 +145,5 @@ exports.updateTokens = functions.pubsub.schedule(cron).onRun(() => {
 console.log(`-- Sheduled update E-Com Plus tokens '${cron}'`)
 
 const clearOldGeocodes = require('./lib/clear-old-geocodes')
-exports.checkOrdersTracking = functions.pubsub
-  .schedule('14 4 * * *').onRun(clearOldGeocodes)
+exports.checkOrdersTracking = functions.runWith({ timeoutSeconds: 540 })
+  .pubsub.schedule('14 4 * * *').onRun(clearOldGeocodes)
