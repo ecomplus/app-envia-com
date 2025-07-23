@@ -264,6 +264,20 @@ const app = {
       },
       hide: false
     },
+    carriers: {
+      schema: {
+        title: 'Transportadoras',
+        type: 'array',
+        items: {
+          type: 'string',
+          maxLength: 50,
+          default: 'correios',
+          title: 'Código da transportadora',
+          description: 'Nome da transportadora no Envia.com, sem espaços e começando com letra minúscula',
+        }
+      },
+      hide: false
+    },
     service_labels: {
       schema: {
         title: 'Rótulos para serviços de entrega',

@@ -3,6 +3,49 @@ const { logger } = require('firebase-functions')
 const EnviaAPI = require('../../../lib/envia-api')
 const { getBestPackage } = require('../../../lib/util')
 
+const commonCarriers = [
+  {
+    name: 'correios',
+    description: 'Correios',
+    country_code: 'BR'
+  },
+  {
+    name: 'ups',
+    description: 'UPS',
+    country_code: 'BR'
+  },
+  {
+    name: 'shippify',
+    description: 'Shippify',
+    country_code: 'BR'
+  },
+  {
+    name: 'Jadlog',
+    description: 'Jadlog',
+    country_code: 'BR'
+  },
+  {
+    name: 'dhl',
+    description: 'DHL Express',
+    country_code: 'BR'
+  },
+  {
+    name: 'buslog',
+    description: 'Buslog',
+    country_code: 'BR'
+  },
+  {
+    name: 'totalExpress',
+    description: 'Total Express',
+    country_code: 'BR'
+  },
+  {
+    name: 'loggi',
+    description: 'Loggi',
+    country_code: 'BR'
+  }
+]
+
 exports.post = async ({ appSdk, admin }, req, res) => {
   /**
    * Treat `params` and (optionally) `application` from request body to properly mount the `response`.
@@ -205,145 +248,165 @@ exports.post = async ({ appSdk, admin }, req, res) => {
     }
   }
 
-  try {
-    const enviaApi = new EnviaAPI(appData.api_key, storeId, appData.sandbox)
-    const enviaResponse = await enviaApi.fetch('/ship/rate/', enviaQuote)
+  const enviaCarriers = []
+  if (!appData.carriers.length) {
+    enviaCarriers.push('correios')
+  } else {
+    appData.carriers.forEach((carrierName) => {
+      const commonCarrier = commonCarriers.find(({ name, description }) => {
+        return name === carrierName || description === carrierName
+      })
+      enviaCarriers.push(commonCarrier?.name || carrierName)
+    })
+  }
 
-    if (enviaResponse?.data) {
-      enviaResponse.data.forEach(rate => {
-        const deliveryDays = parseInt(rate?.deliveryDate?.dateDifference)
-        if (!deliveryDays) return
-        const price = parseFloat(rate.totalPrice)
-        if (!price) return
-
-        const matchService = (serviceName) => {
-          return serviceName && (
-            serviceName === rate.serviceDescription ||
-            serviceName === rate.service ||
-            serviceName === rate.carrierDescription ||
-            serviceName === rate.carrier
-          )
+  await Promise.all(enviaCarriers.map(async (carrier) => {
+    try {
+      const enviaApi = new EnviaAPI(appData.api_key, storeId, appData.sandbox)
+      const enviaResponse = await enviaApi.fetch('/ship/rate/', {
+        ...enviaQuote,
+        shipment: {
+          ...enviaQuote.shipment,
+          carrier
         }
-        if (Array.isArray(appData.disable_services)) {
-          const shouldDisable = appData.disable_services.some(rule => {
-            if (!rule.service_name) return false
-            if (matchService(rule.service_name)) return checkZipCode(rule)
-            return true
-          })
-          if (shouldDisable) return
-        }
+      })
 
-        const serviceName = rate.serviceDescription || rate.service
-        let label = serviceName || 'Envia.com'
-        if (serviceName && Array.isArray(appData.service_labels)) {
-          const serviceOpts = appData.service_labels.find((rule) => {
-            return matchService(rule?.service_name)
-          })
-          if (serviceOpts?.label) {
-            label = serviceOpts.label
+      if (enviaResponse?.data) {
+        enviaResponse.data.forEach(rate => {
+          const deliveryDays = parseInt(rate?.deliveryDate?.dateDifference)
+          if (!deliveryDays) return
+          const price = parseFloat(rate.totalPrice)
+          if (!price) return
+
+          const matchService = (serviceName) => {
+            return serviceName && (
+              serviceName === rate.serviceDescription ||
+              serviceName === rate.service ||
+              serviceName === rate.carrierDescription ||
+              serviceName === rate.carrier
+            )
           }
-        }
+          if (Array.isArray(appData.disable_services)) {
+            const shouldDisable = appData.disable_services.some(rule => {
+              if (!rule.service_name) return false
+              if (matchService(rule.service_name)) return checkZipCode(rule)
+              return true
+            })
+            if (shouldDisable) return
+          }
 
-        const shippingLine = {
-          from: {
-            ...params.from,
-            zip: originZip
-          },
-          to: params.to,
-          price,
-          total_price: price,
-          declared_value: secureValue,
-          discount: 0,
-          delivery_time: {
-            days: deliveryDays,
-            working_days: true
-          },
-          posting_deadline: {
-            days: 3,
-            ...postingDeadline
-          },
-          package: {
-            package: {
-              weight: {
-                value: enviaPackage.weight,
-                unit: 'kg'
-              },
-              dimensions: {
-                width: {
-                  value: enviaPackage.dimensions.width,
-                  unit: 'cm'
-                },
-                height: {
-                  value: enviaPackage.dimensions.height,
-                  unit: 'cm'
-                },
-                length: {
-                  value: enviaPackage.dimensions.length,
-                  unit: 'cm'
-                }
-              }
+          const serviceName = rate.serviceDescription || rate.service
+          let label = serviceName || 'Envia.com'
+          if (serviceName && Array.isArray(appData.service_labels)) {
+            const serviceOpts = appData.service_labels.find((rule) => {
+              return matchService(rule?.service_name)
+            })
+            if (serviceOpts?.label) {
+              label = serviceOpts.label
             }
-          },
-          flags: ['enviacom-rate']
-        }
+          }
 
-        // search for discount by shipping rule
-        if (Array.isArray(appData.shipping_rules)) {
-          for (let i = 0; i < appData.shipping_rules.length; i++) {
-            const rule = appData.shipping_rules[i]
-            if (
-              rule &&
-              (!rule.service || matchService(rule.service)) &&
-              checkZipCode(rule) &&
-              !(rule.min_amount > secureValue)
-            ) {
-              // valid shipping rule
-              if (rule.free_shipping) {
-                shippingLine.discount += shippingLine.total_price
-                shippingLine.total_price = 0
-                break
-              } else if (rule.discount) {
-                let discountValue = rule.discount.value
-                if (rule.discount.percentage) {
-                  discountValue *= (shippingLine.total_price / 100)
-                }
-                if (discountValue) {
-                  shippingLine.discount += discountValue
-                  shippingLine.total_price -= discountValue
-                  if (shippingLine.total_price < 0) {
-                    shippingLine.total_price = 0
+          const shippingLine = {
+            from: {
+              ...params.from,
+              zip: originZip
+            },
+            to: params.to,
+            price,
+            total_price: price,
+            declared_value: secureValue,
+            discount: 0,
+            delivery_time: {
+              days: deliveryDays,
+              working_days: true
+            },
+            posting_deadline: {
+              days: 3,
+              ...postingDeadline
+            },
+            package: {
+              package: {
+                weight: {
+                  value: enviaPackage.weight,
+                  unit: 'kg'
+                },
+                dimensions: {
+                  width: {
+                    value: enviaPackage.dimensions.width,
+                    unit: 'cm'
+                  },
+                  height: {
+                    value: enviaPackage.dimensions.height,
+                    unit: 'cm'
+                  },
+                  length: {
+                    value: enviaPackage.dimensions.length,
+                    unit: 'cm'
                   }
                 }
-                break
+              }
+            },
+            flags: ['enviacom-rate']
+          }
+
+          // search for discount by shipping rule
+          if (Array.isArray(appData.shipping_rules)) {
+            for (let i = 0; i < appData.shipping_rules.length; i++) {
+              const rule = appData.shipping_rules[i]
+              if (
+                rule &&
+                (!rule.service || matchService(rule.service)) &&
+                checkZipCode(rule) &&
+                !(rule.min_amount > secureValue)
+              ) {
+                // valid shipping rule
+                if (rule.free_shipping) {
+                  shippingLine.discount += shippingLine.total_price
+                  shippingLine.total_price = 0
+                  break
+                } else if (rule.discount) {
+                  let discountValue = rule.discount.value
+                  if (rule.discount.percentage) {
+                    discountValue *= (shippingLine.total_price / 100)
+                  }
+                  if (discountValue) {
+                    shippingLine.discount += discountValue
+                    shippingLine.total_price -= discountValue
+                    if (shippingLine.total_price < 0) {
+                      shippingLine.total_price = 0
+                    }
+                  }
+                  break
+                }
               }
             }
           }
-        }
 
-        response.shipping_services.push({
-          label,
-          carrier: rate.carrierDescription || rate.carrier,
-          service_name: serviceName?.substring(0, 70),
-          service_code: (rate.service || rate.serviceId)?.substring(0, 70),
-          shipping_line: shippingLine
+          response.shipping_services.push({
+            label,
+            carrier: rate.carrierDescription || rate.carrier,
+            service_name: serviceName?.substring(0, 70),
+            service_code: (rate.service || rate.serviceId)?.substring(0, 70),
+            shipping_line: shippingLine
+          })
         })
-      })
-    } else {
-      logger.warn(`#${storeId} unexpected Envia.com response`, {
-        destinationZip,
-        enviaQuote,
-        enviaResponse
-      })
-    }
+      } else {
+        logger.warn(`#${storeId} unexpected Envia.com response`, {
+          destinationZip,
+          enviaQuote,
+          enviaResponse
+        })
+      }
 
-    if (appData.delivery_instructions) {
-      response.shipping_services.forEach(service => {
-        service.delivery_instructions = appData.delivery_instructions
-      })
+      if (appData.delivery_instructions) {
+        response.shipping_services.forEach(service => {
+          service.delivery_instructions = appData.delivery_instructions
+        })
+      }
+    } catch (error) {
+      logger.error(`#${storeId} error calling Envia.com API: ${error.message}`)
     }
-  } catch (error) {
-    logger.error(`#${storeId} error calling Envia.com API: ${error.message}`)
-  }
+  }))
 
   res.send(response)
 }
