@@ -176,7 +176,7 @@ exports.post = async ({ appSdk }, req, res) => {
 
   try {
     const enviaApi = new EnviaAPI(appData.api_key, storeId, appData.sandbox)
-    const enviaResponse = await enviaApi.fetch('/ship/rate', enviaQuote)
+    const enviaResponse = await enviaApi.fetch('/ship/rate/', enviaQuote)
 
     if (enviaResponse?.data) {
       enviaResponse.data.forEach(rate => {

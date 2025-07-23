@@ -8,7 +8,7 @@ class EnviaAPI {
   constructor (apiKey, storeId, sandbox = false) {
     this.apiKey = apiKey
     this.storeId = storeId
-    this.baseUrl = sandbox ? 'https://ship-test.envia.com' : 'https://ship.envia.com'
+    this.baseUrl = sandbox ? 'https://ship-test.envia.com' : 'https://api.envia.com'
     this.headers = {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
