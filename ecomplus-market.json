@@ -1,7 +1,7 @@
 {
   "app": {
     "title": "Envia.com",
-    "short_description": "Cálculo de frete e automação de etiquetas via Envia.com",
+    "short_description": "Cálculo de frete e prazos via Envia.com",
     "category": "shipping"
   }
 }
