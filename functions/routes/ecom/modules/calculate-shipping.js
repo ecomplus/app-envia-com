@@ -292,7 +292,7 @@ exports.post = async ({ appSdk, admin }, req, res) => {
             const shouldDisable = appData.disable_services.some(rule => {
               if (!rule.service_name) return false
               if (matchService(rule.service_name)) return checkZipCode(rule)
-              return true
+              return false
             })
             if (shouldDisable) return
           }
